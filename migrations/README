@@ -1,0 +1,42 @@
+# Portfolio Tracker Database Migrations
+
+This directory contains Alembic database migration scripts for the Portfolio Tracker application.
+
+## Structure
+
+- `env.py`: Configuration for Alembic environment
+- `script.py.mako`: Template for generating migration scripts
+- `versions/`: Directory containing individual migration scripts
+
+## Usage
+
+### Generate a New Migration
+
+```bash
+# Generate a migration with automatic detection of changes
+alembic revision --autogenerate -m "Description of changes"
+```
+
+### Apply Migrations
+
+```bash
+# Apply all pending migrations
+alembic upgrade head
+
+# Apply specific number of migrations
+alembic upgrade +1
+
+# Rollback migrations
+alembic downgrade -1
+alembic downgrade base  # Roll back all migrations
+```
+
+### View Migration Information
+
+```bash
+# Show current migration version
+alembic current
+
+# Show migration history
+alembic history --verbose
+```

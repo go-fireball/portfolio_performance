@@ -1,0 +1,31 @@
+[project]
+name = "portfolio"
+version = "0.1.0"
+description = "Personal portfolio tracker for offline investment tracking"
+authors = [
+    {name = "go-fireball",email = "venkatachalapatee@outlook.com"}
+]
+readme = "README.md"
+requires-python = "==3.12.3"
+
+[tool.poetry.dependencies]
+sqlalchemy = "^2.0.0"
+psycopg2-binary = "^2.9.9"
+python-dateutil = "^2.8.2"
+pydantic = "^2.5.0"
+alembic = "^1.12.0"
+PySide6 = "^6.5.0"
+
+[tool.poetry.extras]
+gui = ["PySide6"]
+
+[tool.poetry]
+packages = [{include = "portfolio", from = "src"}]
+
+[project.scripts]
+portfolio-db = "portfolio.cli:main"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

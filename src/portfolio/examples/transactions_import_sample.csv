@@ -1,0 +1,13 @@
+date,symbol,action,quantity,price,fees,account_name,instrument_type,journal_details,notes,amount
+2023-08-15,AAPL,buy,10.5,178.50,4.99,"My Fidelity Account",stock,,"Initial Apple purchase",
+2023-08-20,MSFT,buy,5,330.22,4.99,"My Fidelity Account",stock,,,
+2023-09-01,,deposit,,,0,"My Fidelity Account",cash,,"Monthly deposit",1000.00
+2023-09-15,SPY,buy,3.25,453.75,4.99,"My Fidelity Account",etf,,,
+2023-10-01,AAPL,sell,5.5,170.25,4.99,"My Fidelity Account",stock,,"Partial sale",
+2023-10-10,TSLA,buy,2,250.00,4.99,"My Schwab Account",stock,,,
+2023-10-15,AAPL,dividend,,0.24,,"My Fidelity Account",stock,,"Apple quarterly dividend",2.52
+2023-11-01,,withdrawal,,,0,"My Fidelity Account",cash,,"Withdrawal for expenses",-500.00
+2023-11-15,SPY,transfer_out,3.25,,,"My Fidelity Account",etf,{"destination_account":"My Schwab Account"},"Transfer to Schwab",
+2023-11-15,SPY,transfer_in,3.25,,,"My Schwab Account",etf,{"source_account":"My Fidelity Account"},"Transfer from Fidelity",
+2023-12-01,GOOGL,buy,1.75,132.50,4.99,"My Schwab Account",stock,,,
+2023-12-20,MSFT,sell,2,350.00,4.99,"My Fidelity Account",stock,,"Partial profit taking",

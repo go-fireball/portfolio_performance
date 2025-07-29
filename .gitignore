@@ -1,0 +1,19 @@
+
+
+# IDE settings
+.idea/
+**/.idea/
+
+# Python bytecode
+__pycache__/
+**/__pycache__/
+
+*.py[cod]
+
+# Logs and local DBs
+*.log
+*.sqlite3
+
+# Environment variables
+.env
+.env.*
