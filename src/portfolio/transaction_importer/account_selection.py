@@ -92,6 +92,9 @@ class AccountSelectionDialog(QDialog):
         self.ok_button.setEnabled(account_id is not None)
         if account_id is not None:
             self.selected_account = self.account_combo.currentText().split(' (')[0]
+            # Force immediate validation of the selection
+            if self.parent() and hasattr(self.parent(), 'model'):
+                self.parent().model.layoutChanged.emit()
 
     def _create_new_account(self):
         """Create a new account."""

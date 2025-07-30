@@ -51,9 +51,9 @@ class TransactionReviewWindow(QMainWindow):
 
         # Table view for transactions
         self.table_view = QTableView()
-        self.table_view.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_view.setAlternatingRowColors(True)
-        self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.main_layout.addWidget(self.table_view)
 
         # Buttons layout
@@ -62,6 +62,10 @@ class TransactionReviewWindow(QMainWindow):
         self.load_button = QPushButton("Load CSV")
         self.load_button.clicked.connect(self.load_csv)
         button_layout.addWidget(self.load_button)
+
+        self.manage_mappings_button = QPushButton("Manage Mappings")
+        self.manage_mappings_button.clicked.connect(self.manage_mappings)
+        button_layout.addWidget(self.manage_mappings_button)
 
         self.save_button = QPushButton("Save to Database")
         self.save_button.clicked.connect(self.save_to_database)
@@ -181,6 +185,17 @@ class TransactionReviewWindow(QMainWindow):
                     for transaction in self.transactions:
                         transaction['account_name'] = self.account_name_override
 
+                    # Validate all rows immediately to make sure account name is properly recognized
+                    for i, transaction in enumerate(self.transactions):
+                        if 'errors' in transaction:
+                            # Remove any account-related errors since we just set the account
+                            transaction['errors'] = [err for err in transaction.get('errors', []) 
+                                                      if 'account' not in err.lower()]
+
+                    # Force model to update immediately after setting account override
+                    if hasattr(self, 'model'):
+                        self.model.layoutChanged.emit()
+
                 # Show file info in status label
                 filename = Path(filepath).name
                 self.status_label.setText(
@@ -270,3 +285,10 @@ class TransactionReviewWindow(QMainWindow):
                 if transaction.get('transaction_type') == TransactionType.OPTION_EXPIRATION:
                     transaction['price'] = Decimal('0')
                     transaction['amount'] = Decimal('0')
+
+    @Slot()
+    def manage_mappings(self):
+        """Open the transaction type mapping manager dialog."""
+        from portfolio.transaction_importer.manage_mappings import ManageMappingsDialog
+        dialog = ManageMappingsDialog(self)
+        dialog.exec()

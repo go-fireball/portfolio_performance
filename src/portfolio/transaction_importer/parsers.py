@@ -8,24 +8,53 @@ from portfolio.models import OptionType, TransactionType
 
 
 def parse_date(date_str: str) -> Optional[date]:
-    """Parse date string in various formats."""
+    """Parse date string in various formats.
+
+    If date string contains 'as of' (e.g., "07/22/2024 as of 07/19/2024"),
+    use the 'as of' date instead of the main date.
+    """
+    # Check for 'as of' pattern
+    as_of_match = re.search(r'as of ([0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2})', date_str, re.IGNORECASE)
+    if as_of_match:
+        # Use the 'as of' date instead
+        date_str = as_of_match.group(1)
+
+    # Try standard formats
     formats = ['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%d-%m-%Y']
     for fmt in formats:
         try:
             return datetime.strptime(date_str, fmt).date()
         except ValueError:
             continue
+
+    # If nothing worked, try more aggressive cleaning and parsing
+    try:
+        # Remove any text and keep only the first date-like pattern
+        date_pattern = re.search(r'([0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4}|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2})', date_str)
+        if date_pattern:
+            clean_date_str = date_pattern.group(1)
+            for fmt in formats:
+                try:
+                    return datetime.strptime(clean_date_str, fmt).date()
+                except ValueError:
+                    continue
+    except Exception:
+        pass
+
     return None
 
 
-def standardize_option_transaction_type(action_str: str, is_option: bool = False) -> TransactionType:
+def standardize_option_transaction_type(action_str: str, is_option: bool = False, quantity: Optional[Decimal] = None, broker: Optional[str] = None) -> TransactionType:
     """Standardize option transaction types from various formats.
 
     Maps various broker-specific formats to our standard TransactionType enum values.
+    Uses the transaction_type_mapper if available for customizable mappings.
 
     Args:
         action_str: The action string from the CSV file
         is_option: Whether this is known to be an option transaction
+        quantity: Optional quantity to help determine transfer direction
+        broker: Optional broker name for broker-specific mappings
 
     Returns:
         The standardized TransactionType enum value
@@ -35,8 +64,18 @@ def standardize_option_transaction_type(action_str: str, is_option: bool = False
         - "STO" → TransactionType.SELL_TO_OPEN
         - "BTC" → TransactionType.BUY_TO_CLOSE
         - "Sell to Close" → TransactionType.SELL_TO_CLOSE
+        - "Journal Shares" → TransactionType.TRANSFER_IN or TransactionType.TRANSFER_OUT (based on quantity)
     """
+    # First try to use the transaction type mapper if available
+    from portfolio.transaction_importer.utils import transaction_type_mapper
+
     action = action_str.lower().strip()
+    mapped_type = transaction_type_mapper.get_transaction_type(action, broker, quantity)
+    if mapped_type:
+        return mapped_type
+
+    # Fallback to hardcoded mappings if no match found in the mapper
+    # or if the mapper isn't available
 
     # Check for standard option transaction formats
     option_action_mapping = {
@@ -105,10 +144,11 @@ def standardize_option_transaction_type(action_str: str, is_option: bool = False
         return TransactionType.DEPOSIT
     elif 'withdrawal' in action:
         return TransactionType.WITHDRAWAL
-    elif 'transfer in' in action:
-        return TransactionType.TRANSFER_IN
-    elif 'transfer out' in action:
-        return TransactionType.TRANSFER_OUT
+    elif 'transfer' in action or 'journal' in action:
+        # Determine direction based on quantity if available
+        if quantity is not None:
+            return TransactionType.TRANSFER_OUT if quantity < 0 else TransactionType.TRANSFER_IN
+        return TransactionType.TRANSFER_IN  # Default to transfer in if no quantity info
     elif 'fee' in action:
         return TransactionType.FEE
     elif 'split' in action:

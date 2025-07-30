@@ -25,6 +25,14 @@ class DateDelegate(QStyledItemDelegate):
         value = editor.date().toPython()
         model.setData(index, value, Qt.EditRole)
 
+    def displayText(self, value, locale):
+        """Format the display text for date values."""
+        if value is None or value == '':
+            return ''
+        if isinstance(value, date):
+            return value.strftime('%Y-%m-%d')
+        return str(value)
+
 
 class ComboBoxDelegate(QStyledItemDelegate):
     """Custom delegate for enum dropdowns."""
@@ -71,6 +79,17 @@ class DecimalDelegate(QStyledItemDelegate):
         except InvalidOperation:
             # Invalid decimal format, don't update the model
             pass
+
+    def displayText(self, value, locale):
+        """Format the display text for decimal values."""
+        if value is None or value == '':
+            return ''
+        if isinstance(value, Decimal):
+            # Format with appropriate number of decimal places
+            if value == int(value):
+                return str(int(value))  # Show whole numbers without decimal point
+            return str(value)  # Use decimal's string representation
+        return str(value)
 
 
 class JSONDelegate(QStyledItemDelegate):

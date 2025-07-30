@@ -23,8 +23,8 @@ class TransactionTableModel(QAbstractTableModel):
     def columnCount(self, parent=None):
         return len(self._headers)
 
-    def headerData(self, section, orientation, role):
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return self._headers[section]
         return None
 
@@ -35,23 +35,34 @@ class TransactionTableModel(QAbstractTableModel):
         row, col = index.row(), index.column()
         column_name = self._headers[col]
 
-        if role == Qt.BackgroundRole and self._data[row].get('errors'):
+        # Set foreground color to ensure text is visible against background
+        if role == Qt.ItemDataRole.ForegroundRole:
+            # Use black text for all cells
+            return Qt.black
+
+        if role == Qt.ItemDataRole.BackgroundRole and self._data[row].get('errors'):
             return self.error_color
 
-        if role in (Qt.DisplayRole, Qt.EditRole):
+        if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             # Handle special display formatting
             value = self._data[row].get(column_name)
 
             if column_name == 'transaction_date' and isinstance(value, date):
+                # Format date for display role, return date object for edit role
+                if role == Qt.ItemDataRole.DisplayRole:
+                    return value.strftime('%Y-%m-%d')  # Format date as string for display
                 return value
             elif column_name == 'transaction_type' and isinstance(value, TransactionType):
                 return value.value
             elif column_name == 'instrument_type' and isinstance(value, InstrumentType):
                 return value.value
             elif column_name in ('quantity', 'price', 'fees', 'amount') and isinstance(value, Decimal):
+                # Format decimal values for display
+                if role == Qt.ItemDataRole.DisplayRole:
+                    return str(value)  # Ensure string conversion for display
                 return value
             elif column_name == 'journal_details' and isinstance(value, dict):
-                return value if role == Qt.EditRole else json.dumps(value)
+                return value if role == Qt.ItemDataRole.EditRole else json.dumps(value)
             elif column_name == 'errors':
                 return "\n".join(value) if value else ""
 
@@ -60,7 +71,7 @@ class TransactionTableModel(QAbstractTableModel):
         return None
 
     def setData(self, index, value, role):
-        if not index.isValid() or role != Qt.EditRole:
+        if not index.isValid() or role != Qt.ItemDataRole.EditRole:
             return False
 
         row, col = index.row(), index.column()
@@ -153,9 +164,9 @@ class TransactionTableModel(QAbstractTableModel):
 
     def flags(self, index):
         if not index.isValid():
-            return Qt.NoItemFlags
+            return Qt.ItemFlag.NoItemFlags
 
-        return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+        return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable
 
     def _add_error(self, row, error_message):
         """Add an error message to a row."""
@@ -186,8 +197,17 @@ class TransactionTableModel(QAbstractTableModel):
         if 'transaction_type' not in data or not data['transaction_type']:
             self._add_error(row, "Transaction type is required")
 
-        if 'account_name' not in data or not data['account_name']:
+        if 'account_name' not in data or not data['account_name'] or data['account_name'].strip() == '':
             self._add_error(row, "Account name is required")
+        else:
+            # Explicitly remove any account-related errors when account is valid
+            errors_to_remove = []
+            for error in data.get('errors', []):
+                if 'account name' in error.lower():
+                    errors_to_remove.append(error)
+
+            for error in errors_to_remove:
+                self._remove_error(row, error)
 
         if 'transaction_type' in data:
             ttype = data['transaction_type']

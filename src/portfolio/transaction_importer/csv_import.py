@@ -82,9 +82,28 @@ def import_transactions_from_csv(filepath: str, column_mappings: Optional[Dict[s
                         transaction['price'] = Decimal('0')
                         transaction['amount'] = Decimal('0')
 
+                    # Process quantity early if needed for transaction type determination
+                    quantity_column = column_mappings.get('quantity')
+                    if quantity_column and quantity_column in row:
+                        transaction['quantity'] = parse_decimal(row[quantity_column])
+
+                    # Extract broker from account name if available
+                    broker = None
+                    account_column = column_mappings.get('account_name')
+                    if account_column and account_column in row and row[account_column].strip():
+                        # Try to extract broker from account name (common format: "Account Name (Broker)")
+                        account_name = row[account_column].strip()
+                        if '(' in account_name and ')' in account_name:
+                            broker = account_name.split('(')[-1].split(')')[0]
+
                     # Use the standardization function to get the correct transaction type
                     try:
-                        transaction['transaction_type'] = standardize_option_transaction_type(action, is_option_transaction)
+                        transaction['transaction_type'] = standardize_option_transaction_type(
+                            action, 
+                            is_option_transaction,
+                            transaction.get('quantity'),
+                            broker
+                        )
                     except Exception as e:
                         # If standardization fails, log the error and store the original action
                         transaction['errors'].append(f"Could not determine transaction type: {original_action}")
@@ -158,9 +177,10 @@ def import_transactions_from_csv(filepath: str, column_mappings: Optional[Dict[s
                 else:
                     transaction['errors'].append("Account name is required but not mapped")
 
-                # Process numeric values
-                quantity_column = column_mappings.get('quantity')
-                if quantity_column and quantity_column in row:
+                # Skip quantity parsing as it's already done above for transaction type detection
+                # Just ensure it's correctly set
+                if 'quantity' not in transaction and column_mappings.get('quantity') in row:
+                    quantity_column = column_mappings.get('quantity')
                     transaction['quantity'] = parse_decimal(row[quantity_column])
 
                 price_column = column_mappings.get('price')
